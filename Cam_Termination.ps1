@@ -1,7 +1,6 @@
 ﻿#Request account information, set mailnickname, hide from GAL, and disable account
-$user = Get-ADUser -Filter "Enabled -eq 'True' -and userprincipalname -like '*@crisisassistance.org'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single
-$username = $user.DistinguishedName
-set-aduser -Identity $username -replace @{msExchHideFromAddressLists=$True;mailnickname=$user.SamAccountName}
+$user = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single
+set-aduser -Identity $user.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$user.SamAccountName}
 Disable-ADAccount -Identity $user.DistinguishedName -Confirm:$False
 
 #Set Variables
@@ -13,48 +12,53 @@ $Hold = Read-Host -Prompt "Is a Litigation Hold Needed (y/n)?"
 #Connect to Exchange
 Connect-ExchangeOnline
 
+#Connect to AzureAD
+Connect-AzureAD
+
+#Block user's sign-in
+Set-AzureADUser -ObjectId $user.userprincipalname -AccountEnabled $False
+
 #Reset user's password
-Set-ADAccountPassword -Identity $user -NewPassword $NewPassword -Reset
+Set-ADAccountPassword -Identity $user.SamAccountName -NewPassword $NewPassword -Reset
 Write-Host "Password Reset"
 
 #Set OOO
 if ( $OOO -match 'y')
 {
-    $Manager = Read-Host "Enter manager's username"
+    Write-Host "Select the user's manager."
+    $Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
     $OOOmessage = @"
-$($user.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+        $($user.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
 
-Please contact $($Manager)@crisisassistance.org and your emails will be delivered to the appropriate department.
+        Please contact $Manager and your emails will be delivered to the appropriate department.
 
-Thank you
+        Thank you
 "@
-    Set-MailboxAutoReplyConfiguration -Identity $user -ExternalMessage $OOOmessage -InternalMessage $OOOmessage -AutoReplyState Enabled
+    Set-MailboxAutoReplyConfiguration -Identity $user.userprincipalname -ExternalMessage $OOOmessage -InternalMessage $OOOmessage -AutoReplyState Enabled
     Write-Host "Out of Office Set"
 }
 
 #Set Shared Mailbox
 if ( $shared -match 'y')
 {
-    Set-Mailbox $user -Type Shared
+    Set-Mailbox $user.userprincipalname -Type Shared
 }
 
 #Remove AD/365 Group Memberships
-$ADGroups = (Get-ADUser $user -Properties memberof).memberof
-$ADGroups | foreach {remove-adgroupmember -identity $_ -member $user}
+$ADGroups = (Get-ADUser $user.SamAccountName -Properties memberof).memberof
+$ADGroups | ForEach-Object {remove-adgroupmember -identity $_ -member $user.SamAccountName}
 
-$DistributionGroups= Get-DistributionGroup | where { (Get-DistributionGroupMember $_.Name | foreach {$_.PrimarySmtpAddress}) -contains "$User"}
-$DistributionGroups | Select-Object DisplayName,ExchangeObjectID | Out-File $user-DGs.txt
-foreach ($dg in $DistributionGroups)
+$DistributionGroups= Get-DistributionGroup | Where-Object { (Get-DistributionGroupMember $_.Name | ForEach-Object {$_.PrimarySmtpAddress}) -contains "$User"}
+foreach($dg in $DistributionGroups)
 {
-    Remove-DistributionGroupMember $dg.name -Member $User -Confirm:$false
+    Remove-DistributionGroupMember $dg.name -Member $user.samaccountname -Confirm:$false
 }
 Write-Host "Removed Group Memberships"
 
 
 #Set Litigation Hold
-$Hold = Read-Host -Prompt "Is a Litigation Hold Needed (y/n)?"
 if ( $hold -match 'y')
 {
-    Set-Mailbox $user -LitigationHoldEnabled $true
+    Set-Mailbox $email -LitigationHoldEnabled $true
     Write-Host "Litigation Hold Set"
 }
