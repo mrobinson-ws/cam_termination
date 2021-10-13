@@ -1,3 +1,4 @@
+Add-Type -AssemblyName System.Web
 Add-Type -AssemblyName PresentationFramework
 
 ### Start XAML and Reader to use WPF, as well as declare variables for use
@@ -78,15 +79,20 @@ $OOOCheckbox.Add_Checked({
 ### End Logic/Functions for enabling/disabling functionality
 
 $UserButton.Add_Click({
-
+    $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single
+    $UserTextbox.Text = $Global:termeduser.Name
 })
 
 $ManagerButton.Add_Click({
-
+    $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single | Select-Object Name,UserPrincipalName
+    $ManagerTextBox.Text = $Global:Manager.Name
+    $OOOTextBox.Text = "$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you."
 })
 
 $TerminateGoButton.Add_Click({
-
+    set-aduser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName}
+    $SecurePassword = ConvertTo-SecureString -String $PasswordTextBox.Text -AsPlainText -Force
+    Set-ADAccountPassword -Identity $Global:termeduser.SamAccountName -NewPassword $SecurePassword -Reset
 })
 
 $null = $UserForm.ShowDialog()

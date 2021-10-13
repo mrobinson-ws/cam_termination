@@ -26,7 +26,7 @@ Write-Host "Password Reset"
 if ( $OOO -match 'y')
 {
     Write-Host "Select the user's manager."
-    $Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+    $Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single | Select-Object Name,UserPrincipalName
     $OOOmessage = @"
         $($user.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
 
