@@ -1,6 +1,17 @@
 Add-Type -AssemblyName System.Web
 Add-Type -AssemblyName PresentationFramework
 
+# Test For Modules
+if(-not(Get-Module ExchangeOnlineManagement -ListAvailable)){
+    $null = [System.Windows.MessageBox]::Show('Please Install ExchangeOnlineManagement - view http://worksmart.link/7l for details')
+    Exit
+}
+
+if(-not(Get-Module AzureAD -ListAvailable)){
+    $null = [System.Windows.MessageBox]::Show('Please Install AzureAD - view http://worksmart.link/7l for details')
+    Exit
+}
+
 ### Start XAML and Reader to use WPF, as well as declare variables for use
 [xml]$xaml = @"
 <Window
@@ -14,18 +25,26 @@ Add-Type -AssemblyName PresentationFramework
     <Grid Background="#FFC8C8C8">
         <Button Name="UserButton" Content="Select User" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="0"/>
         <TextBox Name="UserTextBox" HorizontalAlignment="Left" Height="20" Margin="150,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" IsReadOnly="True" IsEnabled="False"/>
-        <TextBox Name="PasswordTextBox" HorizontalAlignment="Left" Height="20" Margin="150,35,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" TabIndex="1"/>
+        <TextBox Name="PasswordTextBox" HorizontalAlignment="Left" Height="20" Margin="150,35,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="178" TabIndex="1"/>
         <Label Content="Enter New Password:" HorizontalAlignment="Left" Margin="29,32,0,0" VerticalAlignment="Top" Width="121" Height="23"/>
         <CheckBox Name="OOOCheckBox" Content="Out Of Office?" HorizontalAlignment="Left" Margin="10,60,0,0" VerticalAlignment="Top" TabIndex="2" IsChecked="True"/>
         <CheckBox Name="SharedCheckBox" Content="Shared Mailbox?" HorizontalAlignment="Left" Margin="196,60,0,0" VerticalAlignment="Top" TabIndex="3" IsChecked="True"/>
         <CheckBox Name="LitigationHoldCheckBox" Content="Litigation Hold?" HorizontalAlignment="Left" Margin="403,60,0,0" TabIndex="4" VerticalAlignment="Top"/>
         <Button Name="ManagerButton" Content="Select Manager" HorizontalAlignment="Left" Margin="10,80,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="5"/>
         <TextBox Name="ManagerTextBox" HorizontalAlignment="Left" Height="20" Margin="150,80,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" IsReadOnly="True" IsEnabled="False"/>
-        <RichTextBox Name="TerminationRichTextBox" HorizontalAlignment="Left" Height="85" Margin="10,195,0,0" VerticalAlignment="Top" Width="497" Background="Black" Foreground="#FF00C8C8" IsReadOnly="True">
+        <RichTextBox Name="TerminationRichTextBox" HorizontalAlignment="Left" Height="58" Margin="10,222,0,0" VerticalAlignment="Top" Width="497" Background="Black" Foreground="#FF00C8C8" IsReadOnly="True">
             <FlowDocument/>
         </RichTextBox>
         <Button Name="TerminateGoButton" Content="Terminate User" HorizontalAlignment="Left" Margin="10,285,0,0" VerticalAlignment="Top" Width="497" Height="24" IsEnabled="False" TabIndex="7"/>
-        <TextBox Name="OOOTextBox" HorizontalAlignment="Left" Height="85" Margin="10,105,0,0" TextWrapping="Wrap" Text="User is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact Manager and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you." VerticalAlignment="Top" Width="497" TabIndex="6"/>
+        <TextBox Name="OOOTextBox" HorizontalAlignment="Left" Height="85" Margin="10,132,0,0" TextWrapping="Wrap" Text="User is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact Manager and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you." VerticalAlignment="Top" Width="497" TabIndex="6"/>
+        <Button Name="GeneratePasswordButton" Content="Generate Random Password" HorizontalAlignment="Left" Margin="333,35,0,0" VerticalAlignment="Top" Width="174"/>
+        <ComboBox Name="LicenseComboBox" HorizontalAlignment="Left" Margin="10,105,0,0" VerticalAlignment="Top" Width="497" IsReadOnly="True" SelectedIndex="0" FontSize="10">
+            <ComboBoxItem Name="LicenseSelection1" IsSelected="True" FontSize="10">User is an E1 Office 365 user and license should remain assigned, but Sign-in blocked</ComboBoxItem>
+            <ComboBoxItem Name="LicenseSelection2" IsSelected="False" FontSize="10">User is an E1 Office 365 user and license should be removed (user data will be lost after 90 days)</ComboBoxItem>
+            <ComboBoxItem Name="LicenseSelection3" IsSelected="False" FontSize="10">User is an E3 Office 365 user and license should be converted to an E1 license and Sign-in blocked</ComboBoxItem>
+            <ComboBoxItem Name="LicenseSelection4" IsSelected="False" FontSize="10">User is an E3 Office 365 user and license should be removed (user data will be lost after 90 days)</ComboBoxItem>
+            <ComboBoxItem Name="LicenseSelection5" IsSelected="False" FontSize="10">User is an E3 Office 365 user and should be converted to a shared mailbox and license removed</ComboBoxItem>
+        </ComboBox>
     </Grid>
 
 </Window>
@@ -76,23 +95,124 @@ $OOOCheckbox.Add_Checked({
     $ManagerButton.IsEnabled = $true
     $OOOTextBox.IsEnabled = $true
 })
-### End Logic/Functions for enabling/disabling functionality
 
+$PasswordTextBox.Add_TextChanged({
+    if (($PasswordTextBox.Text.Length -ge 8) -and ($UserTextBox.Text.Length -gt 0)){
+        $TerminateGoButton.IsEnabled = $true
+    }
+    else{
+        $TerminateGoButton.IsEnabled = $false
+    }
+})
+
+$UserTextBox.Add_TextChanged({
+    if (($PasswordTextBox.Text.Length -ge 8) -and ($UserTextBox.Text.Length -gt 0)){
+        $TerminateGoButton.IsEnabled = $true
+    }
+    else{
+        $TerminateGoButton.IsEnabled = $false
+    }
+})
+### End Logic for enabling/disabling functionality
+
+#Select User
 $UserButton.Add_Click({
     $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single
     $UserTextbox.Text = $Global:termeduser.Name
+    $OOOTextBox.Text = @"
+$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.
+Thank you.
+"@
 })
 
+#Randomly generate a 16 character password with 8 being non-alphanumeric
+$GeneratePasswordButton.Add_Click({
+    $PasswordTextBox.Text = [System.Web.Security.Membership]::GeneratePassword(16,8)
+})
+
+#Select Manager
 $ManagerButton.Add_Click({
-    $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single | Select-Object Name,UserPrincipalName
+    $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single
     $ManagerTextBox.Text = $Global:Manager.Name
-    $OOOTextBox.Text = "$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you."
+    $OOOTextBox.Text = @"
+$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.
+Thank you.
+"@
 })
 
+#Terminate the user with selected options
 $TerminateGoButton.Add_Click({
-    set-aduser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName}
+    #Set Mail Nickname, Hide from GAL, and Disable AD User Account
+    Set-ADUser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName}
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Hid user from GAL and set Mail Nickname`r"
+    
     $SecurePassword = ConvertTo-SecureString -String $PasswordTextBox.Text -AsPlainText -Force
     Set-ADAccountPassword -Identity $Global:termeduser.SamAccountName -NewPassword $SecurePassword -Reset
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Reset user's password.`r"
+    
+    Disable-ADAccount -Identity $Global:termeduser.DistinguishedName -Confirm:$False
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Disabled user in Active Directory`r"
+
+    #Test and Connect to Exchange Online if needed
+    Try{
+        Get-AcceptedDomain -ErrorAction Stop | Out-Null
+    }Catch{
+        Connect-ExchangeOnline -ShowBanner:$false
+    }
+
+    #Set Out of Office Message
+    if($OOOCheckBox.IsChecked){
+        Set-MailboxAutoReplyConfiguration -Identity $GLobal:termeduser.UserPrincipalName -ExternalMessage $OOOTextbox.Text -InternalMessage $OOOTextbox.Text -AutoReplyState Enabled
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Out of Office Message Set.`r"
+    }
+
+    #Change to Shared Mailbox
+    if($LicenseComboBox.SelectedItem = $LicenseSelection5){
+        Set-Mailbox $Global:termeduser.UserPrincipalName -Type Shared
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Mailbox converted to Shared Mailbox.`r"
+    }
+
+    #Remove AD Groups
+    $ADGroups = (Get-ADUser $Global:termeduser.SamAccountName -Properties memberof).memberof
+    $ADGroups | ForEach-Object {remove-adgroupmember -identity $_ -member $Global:termeduser.SamAccountName}
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all Active Directory groups.`r"
+
+    #Test and Connect to Azure AD if needed
+    Try{
+        Get-AzureADDomain -ErrorAction Stop | Out-Null
+    }Catch{
+        Connect-AzureAD
+    }
+
+    #Remove M365/AzureAD Groups
+    $memberships = Get-AzureADUserMembership -ObjectId $Global:termeduser.UserPrincipalName | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
+    foreach ($membership in $memberships) { 
+            $group = Get-AzureADMSGroup -ID $membership.ObjectId
+            if ($group.GroupTypes -contains 'DynamicMembership') {
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Skipped M365/AzureAD Group $($group.Displayname) as it is dynamic`r" -Color "Yellow"
+            }
+            else{
+                Try{
+                    Remove-AzureADGroupMember -ObjectId $membership.ObjectId -MemberId $UserInfo.ObjectId -ErrorAction Stop
+                }Catch{
+                    $message = $_.Exception.Message
+                    if ($_.Exception.ErrorContent.Message.Value) {
+                        $message = $_.Exception.ErrorContent.Message.Value
+                    }
+                    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Could not remove from M365/AzureAD group $($group.name).  Error:  $message`r" -Color "Yellow"
+                }
+            
+            }
+        }
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from M365/AzureAD groups.`r"
+
+    #Set Litigation Hold
+    if($LitigationHoldCheckBox.IsChecked){
+        Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation hold set.`r"
+    }
 })
 
 $null = $UserForm.ShowDialog()
