@@ -353,16 +353,6 @@ $TerminateGoButton.Add_Click({
 
     #Manage Licenses as needed
     $Licenses = Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits
-    foreach($License in $Licenses){
-        $TempSkuCheck = $skuToFriendly.Item("$($License.SkuID)")
-        if($TempSkuCheck){
-            $License.SkuPartNumber = $skuToFriendly.Item("$($License.SkuID)")
-        }
-        else{
-            "Non-Matching SkuPartNumber $($License.SkuID) - $($License.SkuPartNumber)" | clip
-            $null = [System.Windows.MessageBox]::Show("Please Submit a Github Issue for Non-Matching SkuPartNumber $($License.SkuID) - $($License.SkuPartNumber): https://github.com/mrobinson-ws/azure_comboscript/issues - the Needed Information has been copied to your clipboard") 
-        }
-    }
 
     $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
 
@@ -371,45 +361,49 @@ $TerminateGoButton.Add_Click({
             # Verify E1 license, signin blocked on all users, keep licenses
             Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
             Clear-Variable E1Assigned -ErrorAction SilentlyContinue
+            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
 
-            foreach($AssignedLicense in $UserInfo.assignedlicenses){
-                while($E1Assigned -ne $True){
-                    if($skuToFriendly.Item("$($AssignedLicense.SkuID)") -ne "OFFICE 365 E1"){
-                        $E1Assigned = $False
-                    }
-                    else {
-                        $E1Assigned = $True
-                    }
+            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
+                    $E1Assigned = $True
+                }
+                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                    $E3Assigned = $True
                 }
             }
-            if($E1Assigned -eq $True){
+            if(($E1Assigned -eq $True) -and ($E3Assigned -ne $True)){
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an E1 Office 365 license (no other licenses removed), Sign-in has been blocked.`r"
             }
+            elseif($E3Assigned -eq $True){
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
+            }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Please verify licensing manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
             }
         }
         1 {
             # Verify E1 license, signin blocked on all users, remove all licenses
             Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
             Clear-Variable E1Assigned -ErrorAction SilentlyContinue
+            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
             Clear-Variable TempLicenses -ErrorAction SilentlyContinue
 
-            foreach($AssignedLicense in $UserInfo.assignedlicenses){
-                while($E1Assigned -ne $True){
-                    if($skuToFriendly.Item("$($AssignedLicense.SkuID)") -ne "OFFICE 365 E1"){
-                        $E1Assigned = $False
-                    }
-                    else {
-                        $E1Assigned = $True
-                    }
+            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
+                    $E1Assigned = $True
+                }
+                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                    $E3Assigned = $True
                 }
             }
-            if($E1Assigned -eq $True){
+            if(($E1Assigned -eq $True) -and ($E3Assigned -ne $True)){
                 $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
                 $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
                 Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E1 Office 365 license, which has been removed (along with all other licenses).  User data will be lost after 90 days.`r"
+            }
+            elseif($E3Assigned -eq $True){
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
             }
             else{
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Please verify licensing manually.`r"
@@ -418,50 +412,47 @@ $TerminateGoButton.Add_Click({
         2 {
             # Verify E3 License, signin blocked on all users, Add E1, Remove E3, leave other licenses
             Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
+            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
             Clear-Variable E3Assigned -ErrorAction SilentlyContinue
             Clear-Variable TempLicenses -ErrorAction SilentlyContinue
 
-            foreach($AssignedLicense in $UserInfo.assignedlicenses){
-                while($E3Assigned -ne $True){
-                    if($skuToFriendly.Item("$($AssignedLicense.SkuID)") -ne "OFFICE 365 E3"){
-                        $E3Assigned = $False
-                    }
-                    else {
-                        $E3Assigned = $True
-                    }
+            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
+                    $E1Assigned = $True
+                }
+                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                    $E3Assigned = $True
                 }
             }
-            if($E3Assigned -eq $True){
-                $E1License = $Licenses | Where {$_.SkuID = "18181a46-0d4e-45cd-891e-60aabd171b4e"}
-                if($E1License.Enabled- $E1License.Consumed -ge 0){
-
+            
+            if(($E3Assigned -eq $True) -and ($E1Assigned -eq $True)){
+                $E1License = $Licenses | Where-Object {$_.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"}
+                if($E1License.Enabled- $E1License.ConsumedUnits -ge 0){
+                    #Remove E3
+                    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 licenseand an E1 license (E3 Removed, No Other Licenses Removed), Sign-in has been blocked.`r"    
                 }
-                else{
-                    
-                }
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, now has an E1 license (no other licenses removed), Sign-in has been blocked.`r"
-
+            }
+            elseif(($E3Assigned -eq $True) -and ($E1Assigned -ne $True)){
+                #Assign E1, Remove E3
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, now has an E1 license (no other licenses removed), Sign-in has been blocked.`r"    
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Please verify licensing manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
             }
         }
         3 {
             # Verify E3 license, signin blocked on all users, remove all licenses
             Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
+            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
             Clear-Variable E3Assigned -ErrorAction SilentlyContinue
             Clear-Variable TempLicenses -ErrorAction SilentlyContinue
 
-            foreach($AssignedLicense in $UserInfo.assignedlicenses){
-                while($E3Assigned -ne $True){
-                    if($skuToFriendly.Item("$($AssignedLicense.SkuID)") -ne "OFFICE 365 E3"){
-                        $E3Assigned = $False
-                    }
-                    else {
-                        $E3Assigned = $True
-                    }
+            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                    $E3Assigned = $True
                 }
             }
+
             if($E3Assigned -eq $True){
                 $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
                 $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
@@ -474,7 +465,15 @@ $TerminateGoButton.Add_Click({
         }
         4 {
             # Verify E3 license, signin blocked on all users, converted to Shared prior to Azure AD Sync, remove all licenses
-            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365, has been converted to a Shared Mailbox and all licenses have been removed.`r"
+            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                    $E3Assigned = $True
+                }
+            }
+            if($E3Assigned -eq $True){
+                #Remove all licenses
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365, has been converted to a Shared Mailbox and all licenses have been removed.`r"
+            }
         }
         Default {
             Write-RichtextBox -TextBox $TerminationRichTextBox -Text "I don't know how you did it, but you didn't select anything in the dropdown, please confirm termination manually.`r" -Color "Red"
