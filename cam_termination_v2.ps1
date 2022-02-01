@@ -1,3 +1,4 @@
+#Requires -RunAsAdministrator
 Add-Type -AssemblyName System.Web
 Add-Type -AssemblyName PresentationFramework
 
@@ -20,7 +21,7 @@ if(-not(Get-Module AzureAD -ListAvailable)){
 
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 
-  Title="CAM Termination" Height="350" Width="525" Topmost="True">
+  Title="CAM Termination" Height="350" Width="525">
 
     <Grid Background="#FFC8C8C8">
         <Button Name="UserButton" Content="Select User" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="0"/>
@@ -265,10 +266,10 @@ $TerminateGoButton.Add_Click({
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E1 Office 365 license, which has been removed (along with all other licenses).  User data will be lost after 90 days.`r"
             }
             elseif($E3Assigned -eq $True){
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r" -Color "Red"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Please verify licensing and complete terminaiton manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Please verify licensing and complete terminaiton manually.`r" - Color "Red"
             }
         }
         2 {
@@ -290,33 +291,34 @@ $TerminateGoButton.Add_Click({
             }
             
             if(($E3Assigned -eq $True) -and ($E1Assigned -ne $True)){
+                $E1License = Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"}
                 while($E1License.Enabled - $E1License.ConsumedUnits -lt 1){
                     $E1License = Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"}
                     #Provide Pop Up Stating E1 license needed
-                    $null = [System.Windows.MessageBox]::Show("There are no available Office 365 E1 Licenses, please get one added to the tenant and hit OK to try again.")
+                    $null = [System.Windows.MessageBox]::Show("There are no available Office 365 E1 Licenses, please get one added to the tenant and hit OK to try again.","License Check","OKCancel","Warning")
+                    
                 }
                 
-                #Add E1
+                #Add E1 and Remove E3
+                #E1
                 $TempLicense = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
                 $TempLicense.SkuID = "18181a46-0d4e-45cd-891e-60aabd171b4e"
                 $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
                 $TempLicenses.AddLicenses = $TempLicense
-                Set-AzureADUserLicense -ObjectID $UserInfo.ObjectID -AssignedLicenses $TempLicenses
-                                
-                #Remove E3
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
+                #E3
                 $TempLicenses.RemoveLicenses = "6fd2c87f-b296-42f0-b197-1e91e994b900"
                 Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license and an E1 license (E3 Removed, No Other Licenses Removed), Sign-in has been blocked.`r"    
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license (E3 Removed, No Other Licenses Removed), An E1 License has been added, Sign-in has been blocked.`r"
             }
             elseif(($E3Assigned -eq $True) -and ($E1Assigned -eq $True)){
                 #Remove E3
                 $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
                 $TempLicenses.RemoveLicenses = "6fd2c87f-b296-42f0-b197-1e91e994b900"
                 Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license and an E1 license (E3 Removed, No Other Licenses Removed), Sign-in has been blocked.`r"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r" -Color "Red"
             }
         }
         3 {
@@ -339,7 +341,7 @@ $TerminateGoButton.Add_Click({
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, which has been removed (along with all other licenses).  User data will be lost after 90 days.`r"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Please verify licensing and complete termination manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Please verify licensing and complete termination manually.`r" -Color "Red"
             }
         }
         4 {
@@ -362,15 +364,15 @@ $TerminateGoButton.Add_Click({
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, has been converted to a Shared Mailbox and all licenses have been removed.`r"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 license, please verify licensing and complete termination manually.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 license, please verify licensing and complete termination manually.`r" -Color "Red"
             }
         }
         Default {
             Write-RichtextBox -TextBox $TerminationRichTextBox -Text "I don't know how you did it, but you didn't select anything in the dropdown, please confirm/complete termination manually.`r" -Color "Red"
         }
     }
-    Clear-Variable $Global:termeduser
-    Clear-Variable $Global:Manager
+    Clear-Variable Global:termeduser
+    Clear-Variable Global:Manager
 })
 
 $null = $UserForm.ShowDialog()
