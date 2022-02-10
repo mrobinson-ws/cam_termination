@@ -4,12 +4,12 @@ Add-Type -AssemblyName PresentationFramework
 
 # Test For Modules
 if(-not(Get-Module ExchangeOnlineManagement -ListAvailable)){
-    $null = [System.Windows.MessageBox]::Show('Please Install ExchangeOnlineManagement - view http://worksmart.link/7l for details')
+    $null = [System.Windows.MessageBox]::Show('Please Install ExchangeOnlineManagement - view http://worksmart.link/7x for details')
     Exit
 }
 
 if(-not(Get-Module AzureAD -ListAvailable)){
-    $null = [System.Windows.MessageBox]::Show('Please Install AzureAD - view http://worksmart.link/7l for details')
+    $null = [System.Windows.MessageBox]::Show('Please Install AzureAD - view http://worksmart.link/7x for details')
     Exit
 }
 
