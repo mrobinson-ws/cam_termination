@@ -118,11 +118,11 @@ $UserTextBox.Add_TextChanged({
 
 #Select User
 $UserButton.Add_Click({
-    $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single
+    $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select a User"
     $UserTextbox.Text = $Global:termeduser.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
-Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.
+Please contact $($Global:Manager.Name) at $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
 })
@@ -134,11 +134,11 @@ $GeneratePasswordButton.Add_Click({
 
 #Select Manager
 $ManagerButton.Add_Click({
-    $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single
+    $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select the Manager"
     $ManagerTextBox.Text = $Global:Manager.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
-Please contact $($Global:Manager.Name) and your emails will be delivered to the appropriate department.
+Please contact $($Global:Manager.Name) at $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
 })
@@ -361,10 +361,10 @@ $TerminateGoButton.Add_Click({
                 $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
                 $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
                 Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, has been converted to a Shared Mailbox and all licenses have been removed.`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser.Name) had an E3 Office 365 license, has been converted to a Shared Mailbox and all licenses have been removed.`r"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 license, please verify licensing and complete termination manually.`r" -Color "Red"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser.Name) does NOT have an E3 license, please verify licensing and complete termination manually.`r" -Color "Red"
             }
         }
         Default {
