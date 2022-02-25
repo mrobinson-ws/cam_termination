@@ -185,6 +185,11 @@ $TerminateGoButton.Add_Click({
         Set-Mailbox $Global:termeduser.UserPrincipalName -Type Shared
     }
 
+    #Move to Disabled User OU
+    Move-ADObject -Identity $Global:termeduser.DistinguishedName -TargetPath "OU=Disabled (from Users OU),OU=Users,OU=Crisis Assist,DC=crisisministry,DC=local"
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "User moved to Disabled (From Users OU)`r"
+
+
     #Sync to AzureAD/365
     Start-ADSyncSyncCycle -PolicyType Delta
 
