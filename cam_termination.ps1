@@ -146,11 +146,11 @@ Thank you.
 #Terminate the user with selected options
 $TerminateGoButton.Add_Click({
     #Set Mail Nickname, Hide from GAL, and Disable AD User Account
-    Set-ADUser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName}
+    Set-ADUser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName} -Confirm:$False
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Hid user from GAL and set Mail Nickname`r"
     
     $SecurePassword = ConvertTo-SecureString -String $PasswordTextBox.Text -AsPlainText -Force
-    Set-ADAccountPassword -Identity $Global:termeduser.SamAccountName -NewPassword $SecurePassword -Reset
+    Set-ADAccountPassword -Identity $Global:termeduser.SamAccountName -NewPassword $SecurePassword -Reset -Confirm:$False
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Reset user's password.`r"
     
     Disable-ADAccount -Identity $Global:termeduser.DistinguishedName -Confirm:$False
@@ -165,7 +165,7 @@ $TerminateGoButton.Add_Click({
 
     #Set Out of Office Message
     if($OOOCheckBox.IsChecked){
-        Set-MailboxAutoReplyConfiguration -Identity $Global:termeduser.UserPrincipalName -ExternalMessage $OOOTextbox.Text -InternalMessage $OOOTextbox.Text -AutoReplyState Enabled
+        Set-MailboxAutoReplyConfiguration -Identity $Global:termeduser.UserPrincipalName -ExternalMessage $OOOTextbox.Text -InternalMessage $OOOTextbox.Text -AutoReplyState Enabled -Confirm:$False
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Out of Office Message Set.`r"
     }
 
@@ -195,6 +195,8 @@ $TerminateGoButton.Add_Click({
         Connect-AzureAD
     }
 
+    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
+    
     #Remove remaining M365/AzureAD Groups
     $memberships = Get-AzureADUserMembership -ObjectId $Global:termeduser.UserPrincipalName | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
     foreach ($membership in $memberships) { 
@@ -216,8 +218,6 @@ $TerminateGoButton.Add_Click({
             }
         }
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from M365/AzureAD groups.`r"
-
-    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
 
     switch ($LicenseComboBox.SelectedIndex) {
         0 {
@@ -371,8 +371,8 @@ $TerminateGoButton.Add_Click({
             Write-RichtextBox -TextBox $TerminationRichTextBox -Text "I don't know how you did it, but you didn't select anything in the dropdown, please confirm/complete termination manually.`r" -Color "Red"
         }
     }
-    Clear-Variable Global:termeduser
-    Clear-Variable Global:Manager
+    Remove-Variable termeduser -Scope Global
+    Remove-Variable Manager -Scope Global
 })
 
 $null = $UserForm.ShowDialog()
