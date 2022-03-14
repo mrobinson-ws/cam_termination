@@ -149,6 +149,9 @@ $TerminateGoButton.Add_Click({
         Set-MailboxAutoReplyConfiguration -Identity $Global:termeduser.UserPrincipalName -ExternalMessage $OOOTextbox.Text -InternalMessage $OOOTextbox.Text -AutoReplyState Enabled -Confirm:$False
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Out of Office Message Set.`r"
     }
+    else{
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Out of Office Message not selected`r" -Color "Yellow"
+    }
 
     #Remove AD Groups
     $ADGroups = (Get-ADUser $Global:termeduser.SamAccountName -Properties memberof).memberof
@@ -160,10 +163,17 @@ $TerminateGoButton.Add_Click({
         Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation hold set.`r"
     }
+    else{
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation Hold not selected`r" -Color "Yellow"
+    }
 
     #Set Shared Mailbox if DropDown selected
     if($ConvertToSharedCheckbox.IsChecked){
         Set-Mailbox $Global:termeduser.UserPrincipalName -Type Shared
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Mailbox Converted to Shared Mailbox`r"
+    }
+    else{
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Conversion to Shared Mailbox not selected`r" -Color "Yellow"
     }
 
     if($GrantSharedCheckbox.IsChecked){
@@ -171,10 +181,10 @@ $TerminateGoButton.Add_Click({
             if($SharedMailboxUser){
                 Add-MailboxPermission -Identity $Global:termeduser.UserPrincipalName -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
                 Add-RecipientPermission -Identity $Global:termeduser.UserPrincipalName -Trustee $SharedMailboxUser -AccessRights SendAs -Confirm:$False
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Access granted to the $username Shared Mailbox to $sharedMailboxUser`r"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Access granted to the $($Global:termeduser.UserPrincipalName) Shared Mailbox to $($SharedMailboxUser.DisplayName)`r"
             }
             else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Cancelled Sharing of Mailbox`r" -Color "Red"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Cancelled Mailbox Shared User Access Selection`r" -Color "Red"
             }
     }
 
@@ -192,8 +202,6 @@ $TerminateGoButton.Add_Click({
         Connect-AzureAD
     }
 
-    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
-    
     #Remove remaining M365/AzureAD Groups
     $memberships = Get-AzureADUserMembership -ObjectId $Global:termeduser.UserPrincipalName | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
     foreach ($membership in $memberships) { 
@@ -216,7 +224,15 @@ $TerminateGoButton.Add_Click({
         }
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all M365/AzureAD groups.`r"
 
-    
+    #Remove all 365/Azure licensing
+    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
+    $licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
+    if($UserInfo.assignedlicenses){
+        $licenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
+        Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $licenses
+    }
+    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "All M365/Azure licenses have been removed`r"
+
     Remove-Variable termeduser -Scope Global
     Remove-Variable Manager -Scope Global
 })
