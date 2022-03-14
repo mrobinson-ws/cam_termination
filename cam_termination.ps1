@@ -26,26 +26,17 @@ if(-not(Get-Module AzureAD -ListAvailable)){
     <Grid Background="#FFC8C8C8">
         <Button Name="UserButton" Content="Select User" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="0"/>
         <TextBox Name="UserTextBox" HorizontalAlignment="Left" Height="20" Margin="150,10,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" IsReadOnly="True" IsEnabled="False"/>
-        <TextBox Name="PasswordTextBox" HorizontalAlignment="Left" Height="20" Margin="150,35,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="178" TabIndex="1"/>
-        <Label Content="Enter New Password:" HorizontalAlignment="Left" Margin="29,32,0,0" VerticalAlignment="Top" Width="121" Height="23"/>
         <CheckBox Name="OOOCheckBox" Content="Set Out Of Office Message?" HorizontalAlignment="Left" Margin="10,60,0,0" VerticalAlignment="Top" TabIndex="2" IsChecked="True"/>
-        <CheckBox Name="LitigationHoldCheckBox" Content="Set Litigation Hold?" HorizontalAlignment="Left" Margin="383,60,0,0" TabIndex="4" VerticalAlignment="Top"/>
-        <Button Name="ManagerButton" Content="Select Manager" HorizontalAlignment="Left" Margin="10,80,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="5"/>
-        <TextBox Name="ManagerTextBox" HorizontalAlignment="Left" Height="20" Margin="150,80,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" IsReadOnly="True" IsEnabled="False"/>
-        <RichTextBox Name="TerminationRichTextBox" HorizontalAlignment="Left" Height="58" Margin="10,222,0,0" VerticalAlignment="Top" Width="497" Background="Black" Foreground="#FF00C8C8" IsReadOnly="True">
+        <CheckBox Name="LitigationHoldCheckBox" Content="Set Litigation Hold?" HorizontalAlignment="Left" Margin="10,80,0,0" TabIndex="4" VerticalAlignment="Top"/>
+        <Button Name="ManagerButton" Content="Select Manager" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Width="135" Height="20" TabIndex="5"/>
+        <TextBox Name="ManagerTextBox" HorizontalAlignment="Left" Height="20" Margin="150,35,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="357" IsReadOnly="True" IsEnabled="False"/>
+        <RichTextBox Name="TerminationRichTextBox" HorizontalAlignment="Left" Height="90" Margin="10,190,0,0" VerticalAlignment="Top" Width="497" Background="Black" Foreground="#FF00C8C8" IsReadOnly="True">
             <FlowDocument/>
         </RichTextBox>
         <Button Name="TerminateGoButton" Content="Terminate User" HorizontalAlignment="Left" Margin="10,285,0,0" VerticalAlignment="Top" Width="497" Height="24" IsEnabled="False" TabIndex="8"/>
-        <TextBox Name="OOOTextBox" HorizontalAlignment="Left" Height="85" Margin="10,132,0,0" TextWrapping="Wrap" Text="User is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact Manager and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you." VerticalAlignment="Top" Width="497" TabIndex="7"/>
-        <Button Name="GeneratePasswordButton" Content="Generate Random Password" HorizontalAlignment="Left" Margin="333,35,0,0" VerticalAlignment="Top" Width="174"/>
-        <ComboBox Name="LicenseComboBox" HorizontalAlignment="Left" Margin="10,105,0,0" VerticalAlignment="Top" Width="497" IsReadOnly="True" SelectedIndex="0" FontSize="10" TabIndex="6">
-            <ComboBoxItem Name="LicenseSelection1" IsSelected="True" FontSize="10">User is an E1 Office 365 user and license should remain assigned, but Sign-in blocked</ComboBoxItem>
-            <ComboBoxItem Name="LicenseSelection2" IsSelected="False" FontSize="10">User is an E1 Office 365 user and license should be removed (user data will be lost after 90 days)</ComboBoxItem>
-            <ComboBoxItem Name="LicenseSelection3" IsSelected="False" FontSize="10">User is an E3 Office 365 user and license should be converted to an E1 license and Sign-in blocked</ComboBoxItem>
-            <ComboBoxItem Name="LicenseSelection4" IsSelected="False" FontSize="10">User is an E3 Office 365 user and license should be removed (user data will be lost after 90 days)</ComboBoxItem>
-            <ComboBoxItem Name="LicenseSelection5" IsSelected="False" FontSize="10">User is an E3 Office 365 user and should be converted to a shared mailbox and license removed</ComboBoxItem>
-        </ComboBox>
-        <CheckBox Name="GrantSharedCheckbox" Content="Grant Access to Shared Mailbox?" HorizontalAlignment="Left" Margin="181,60,0,0" VerticalAlignment="Top" TabIndex="3"/>
+        <TextBox Name="OOOTextBox" HorizontalAlignment="Left" Height="85" Margin="10,100,0,0" TextWrapping="Wrap" Text="User is no longer with Crisis Assistance Ministry, and this email is not monitored.&#xD;&#xA;&#xD;&#xA;Please contact Manager and your emails will be delivered to the appropriate department.&#xD;&#xA;&#xD;&#xA;Thank you." VerticalAlignment="Top" Width="497" TabIndex="7"/>
+        <CheckBox Name="GrantSharedCheckbox" Content="Grant Access to Shared Mailbox?" HorizontalAlignment="Left" Margin="314,80,0,0" VerticalAlignment="Top" TabIndex="3" IsEnabled="False"/>
+        <CheckBox Name="ConvertToSharedCheckBox" Content="Convert to Shared Mailbox?" HorizontalAlignment="Left" Margin="314,60,0,0" VerticalAlignment="Top" TabIndex="3"/>
     </Grid>
 
 </Window>
@@ -77,16 +68,6 @@ Function Write-RichTextBox {
     $TextBox.ScrollToEnd()
 }
 
-### Logic for enabling/disabling functionality
-$PasswordTextBox.Add_TextChanged({
-    if (($PasswordTextBox.Text.Length -ge 8) -and ($UserTextBox.Text.Length -ge 2)){
-        $TerminateGoButton.IsEnabled = $true
-    }
-    else{
-        $TerminateGoButton.IsEnabled = $false
-    }
-})
-
 $OOOCheckBox.Add_Unchecked({
     $ManagerButton.IsEnabled = $false
     $OOOTextBox.IsEnabled = $false
@@ -97,8 +78,17 @@ $OOOCheckbox.Add_Checked({
     $OOOTextBox.IsEnabled = $true
 })
 
-$PasswordTextBox.Add_TextChanged({
-    if (($PasswordTextBox.Text.Length -ge 8) -and ($UserTextBox.Text.Length -gt 0)){
+$ConvertToSharedCheckbox.Add_Checked({
+    $GrantSharedCheckbox.IsEnabled = $true
+})
+
+$ConvertToSharedCheckbox.Add_Unchecked({
+    $GrantSharedChecking.IsChecked = $false
+    $GrantSharedChecking.IsEnabled = $false
+})
+
+$UserTextBox.Add_TextChanged({
+    if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
         $TerminateGoButton.IsEnabled = $true
     }
     else{
@@ -106,8 +96,8 @@ $PasswordTextBox.Add_TextChanged({
     }
 })
 
-$UserTextBox.Add_TextChanged({
-    if (($PasswordTextBox.Text.Length -ge 8) -and ($UserTextBox.Text.Length -gt 0)){
+$ManagerTextBox.Add_TextChanged({
+    if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
         $TerminateGoButton.IsEnabled = $true
     }
     else{
@@ -122,14 +112,9 @@ $UserButton.Add_Click({
     $UserTextbox.Text = $Global:termeduser.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
-Please contact $($Global:Manager.Name) at $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
+Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
-})
-
-#Randomly generate a 16 character password with 8 being non-alphanumeric
-$GeneratePasswordButton.Add_Click({
-    $PasswordTextBox.Text = [System.Web.Security.Membership]::GeneratePassword(16,8)
 })
 
 #Select Manager
@@ -138,7 +123,7 @@ $ManagerButton.Add_Click({
     $ManagerTextBox.Text = $Global:Manager.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
-Please contact $($Global:Manager.Name) at $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
+Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
 })
@@ -148,10 +133,6 @@ $TerminateGoButton.Add_Click({
     #Set Mail Nickname, Hide from GAL, and Disable AD User Account
     Set-ADUser -Identity $Global:termeduser.distinguishedname -replace @{msExchHideFromAddressLists=$True;mailnickname=$Global:termeduser.SamAccountName} -Confirm:$False
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Hid user from GAL and set Mail Nickname`r"
-    
-    $SecurePassword = ConvertTo-SecureString -String $PasswordTextBox.Text -AsPlainText -Force
-    Set-ADAccountPassword -Identity $Global:termeduser.SamAccountName -NewPassword $SecurePassword -Reset -Confirm:$False
-    Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Reset user's password.`r"
     
     Disable-ADAccount -Identity $Global:termeduser.DistinguishedName -Confirm:$False
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Disabled user in Active Directory`r"
@@ -181,14 +162,25 @@ $TerminateGoButton.Add_Click({
     }
 
     #Set Shared Mailbox if DropDown selected
-    if($LicenseComboBox.SelectedIndex -eq 4){
+    if($ConvertToSharedCheckbox.IsChecked){
         Set-Mailbox $Global:termeduser.UserPrincipalName -Type Shared
+    }
+
+    if($GrantSharedCheckbox.IsChecked){
+        $SharedMailboxUser = Get-AzureADUser -Filter * | Where-Object {$_.AccountEnabled } | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+            if($SharedMailboxUser){
+                Add-MailboxPermission -Identity $Global:termeduser.UserPrincipalName -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
+                Add-RecipientPermission -Identity $Global:termeduser.UserPrincipalName -Trustee $SharedMailboxUser -AccessRights SendAs -Confirm:$False
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Access granted to the $username Shared Mailbox to $sharedMailboxUser`r"
+            }
+            else{
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Cancelled Sharing of Mailbox`r" -Color "Red"
+            }
     }
 
     #Move to Disabled User OU
     Move-ADObject -Identity $Global:termeduser.DistinguishedName -TargetPath "OU=Disabled (from Users OU),OU=Users,OU=Crisis Assist,DC=crisisministry,DC=local"
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "User moved to Disabled (From Users OU)`r"
-
 
     #Sync to AzureAD/365
     Start-ADSyncSyncCycle -PolicyType Delta
@@ -207,7 +199,7 @@ $TerminateGoButton.Add_Click({
     foreach ($membership in $memberships) { 
             $group = Get-AzureADMSGroup -ID $membership.ObjectId
             if ($group.GroupTypes -contains 'DynamicMembership') {
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Skipped M365/AzureAD Group $($group.Displayname) as it is dynamic`r" -Color "Yellow"
+                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Skipped M365/AzureAD Group $($group.Displayname) as it is dynamic and will not be applied when next run`r" -Color "Yellow"
             }
             else{
                 Try{
@@ -222,160 +214,9 @@ $TerminateGoButton.Add_Click({
             
             }
         }
-        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from M365/AzureAD groups.`r"
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all M365/AzureAD groups.`r"
 
-    switch ($LicenseComboBox.SelectedIndex) {
-        0 {
-            # Verify E1 license, signin blocked on all users, keep licenses
-            Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
-            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
-
-            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
-                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
-                    $E1Assigned = $True
-                }
-                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
-                    $E3Assigned = $True
-                }
-            }
-            if(($E1Assigned -eq $True) -and ($E3Assigned -ne $True)){
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an E1 Office 365 license (no other licenses removed), Sign-in has been blocked.`r"
-            }
-            elseif($E3Assigned -eq $True){
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
-            }
-            else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Sign-in has been blocked.  Please verify licensing manually.`r"
-            }
-        }
-        1 {
-            # Verify E1 license, signin blocked on all users, remove all licenses
-            Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
-            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
-            Clear-Variable TempLicenses -ErrorAction SilentlyContinue
-
-            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
-                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
-                    $E1Assigned = $True
-                }
-                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
-                    $E3Assigned = $True
-                }
-            }
-            if(($E1Assigned -eq $True) -and ($E3Assigned -ne $True)){
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
-                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E1 Office 365 license, which has been removed (along with all other licenses).  User data will be lost after 90 days.`r"
-            }
-            elseif($E3Assigned -eq $True){
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) has an Office 365 E3 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r" -Color "Red"
-            }
-            else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E1 Office 365 License.  Please verify licensing and complete terminaiton manually.`r" - Color "Red"
-            }
-        }
-        2 {
-            # Verify E3 License, signin blocked on all users, Add E1, Remove E3, leave other licenses
-            Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
-            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
-            Clear-Variable TempLicenses -ErrorAction SilentlyContinue
-            Clear-Variable TempLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1License -ErrorAction SilentlyContinue
-
-            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
-                if($AssignedLicense.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"){
-                    $E1Assigned = $True
-                }
-                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
-                    $E3Assigned = $True
-                }
-            }
-            
-            if(($E3Assigned -eq $True) -and ($E1Assigned -ne $True)){
-                $E1License = Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"}
-                while($E1License.Enabled - $E1License.ConsumedUnits -lt 1){
-                    $E1License = Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuID -eq "18181a46-0d4e-45cd-891e-60aabd171b4e"}
-                    #Provide Pop Up Stating E1 license needed
-                    $null = [System.Windows.MessageBox]::Show("There are no available Office 365 E1 Licenses, please get one added to the tenant and hit OK to try again.","License Check","OKCancel","Warning")
-                    
-                }
-                
-                #Add E1 and Remove E3
-                #E1
-                $TempLicense = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
-                $TempLicense.SkuID = "18181a46-0d4e-45cd-891e-60aabd171b4e"
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                $TempLicenses.AddLicenses = $TempLicense
-                #E3
-                $TempLicenses.RemoveLicenses = "6fd2c87f-b296-42f0-b197-1e91e994b900"
-                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license (E3 Removed, No Other Licenses Removed), An E1 License has been added, Sign-in has been blocked.`r"
-            }
-            elseif(($E3Assigned -eq $True) -and ($E1Assigned -eq $True)){
-                #Remove E3
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                $TempLicenses.RemoveLicenses = "6fd2c87f-b296-42f0-b197-1e91e994b900"
-                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license and an E1 license (E3 Removed, No Other Licenses Removed), Sign-in has been blocked.`r"
-            }
-            else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Sign-in has been blocked.  Please verify licensing and complete termination manually.`r" -Color "Red"
-            }
-        }
-        3 {
-            # Verify E3 license, signin blocked on all users, remove all licenses
-            Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
-            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
-            Clear-Variable TempLicenses -ErrorAction SilentlyContinue
-
-            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
-                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
-                    $E3Assigned = $True
-                }
-            }
-
-            if($E3Assigned -eq $True){
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
-                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) had an E3 Office 365 license, which has been removed (along with all other licenses).  User data will be lost after 90 days.`r"
-            }
-            else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) does NOT have an E3 Office 365 License.  Please verify licensing and complete termination manually.`r" -Color "Red"
-            }
-        }
-        4 {
-            # Verify E3 license, signin blocked on all users, converted to Shared prior to Azure AD Sync, remove all licenses
-            Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
-            Clear-Variable E1Assigned -ErrorAction SilentlyContinue
-            Clear-Variable E3Assigned -ErrorAction SilentlyContinue
-            Clear-Variable TempLicenses -ErrorAction SilentlyContinue
-
-            foreach($AssignedLicense in $UserInfo.AssignedLicenses){
-                if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
-                    $E3Assigned = $True
-                }
-            }
-            if($E3Assigned -eq $True){
-                #Remove all licenses
-                $TempLicenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                $TempLicenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
-                Set-AzureADUserLicense -ObjectId $UserInfo.ObjectId -AssignedLicenses $TempLicenses
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser.Name) had an E3 Office 365 license, has been converted to a Shared Mailbox and all licenses have been removed.`r"
-            }
-            else{
-                Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser.Name) does NOT have an E3 license, please verify licensing and complete termination manually.`r" -Color "Red"
-            }
-        }
-        Default {
-            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "I don't know how you did it, but you didn't select anything in the dropdown, please confirm/complete termination manually.`r" -Color "Red"
-        }
-    }
+    
     Remove-Variable termeduser -Scope Global
     Remove-Variable Manager -Scope Global
 })
