@@ -88,20 +88,40 @@ $ConvertToSharedCheckbox.Add_Unchecked({
 })
 
 $UserTextBox.Add_TextChanged({
-    if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
-        $TerminateGoButton.IsEnabled = $true
+    if($OOOCheckbox.IsChecked){
+        if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
+            $TerminateGoButton.IsEnabled = $true
+        }
+        else{
+            $TerminateGoButton.IsEnabled = $false
+        }
     }
     else{
-        $TerminateGoButton.IsEnabled = $false
+        if (($UserTextBox.Text.Length -gt 0)){
+            $TerminateGoButton.IsEnabled = $true
+        }
+        else{
+            $TerminateGoButton.IsEnabled = $false
+        }
     }
 })
 
 $ManagerTextBox.Add_TextChanged({
-    if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
-        $TerminateGoButton.IsEnabled = $true
+    if($OOOCheckbox.IsChecked){
+        if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
+            $TerminateGoButton.IsEnabled = $true
+        }
+        else{
+            $TerminateGoButton.IsEnabled = $false
+        }
     }
     else{
-        $TerminateGoButton.IsEnabled = $false
+        if (($UserTextBox.Text.Length -gt 0)){
+            $TerminateGoButton.IsEnabled = $true
+        }
+        else{
+            $TerminateGoButton.IsEnabled = $false
+        }
     }
 })
 ### End Logic for enabling/disabling functionality
