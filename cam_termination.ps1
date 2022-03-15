@@ -71,11 +71,23 @@ Function Write-RichTextBox {
 $OOOCheckBox.Add_Unchecked({
     $ManagerButton.IsEnabled = $false
     $OOOTextBox.IsEnabled = $false
+    if (($UserTextBox.Text.Length -gt 2)){
+        $TerminateGoButton.IsEnabled = $true
+    }
+    else{
+        $TerminateGoButton.IsEnabled = $false
+    }
 })
 
 $OOOCheckbox.Add_Checked({
     $ManagerButton.IsEnabled = $true
     $OOOTextBox.IsEnabled = $true
+    if (($UserTextBox.Text.Length -gt 2)  -and ($ManagerTextBox.Text.Length -gt 2)){
+        $TerminateGoButton.IsEnabled = $true
+    }
+    else{
+        $TerminateGoButton.IsEnabled = $false
+    }
 })
 
 $ConvertToSharedCheckbox.Add_Checked({
@@ -83,13 +95,13 @@ $ConvertToSharedCheckbox.Add_Checked({
 })
 
 $ConvertToSharedCheckbox.Add_Unchecked({
-    $GrantSharedChecking.IsChecked = $false
-    $GrantSharedChecking.IsEnabled = $false
+    $GrantSharedCheckbox.IsChecked = $false
+    $GrantSharedCheckbox.IsEnabled = $false
 })
 
 $UserTextBox.Add_TextChanged({
     if($OOOCheckbox.IsChecked){
-        if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
+        if (($UserTextBox.Text.Length -gt 2)  -and ($ManagerTextBox.Text.Length -gt 2)){
             $TerminateGoButton.IsEnabled = $true
         }
         else{
@@ -97,7 +109,7 @@ $UserTextBox.Add_TextChanged({
         }
     }
     else{
-        if (($UserTextBox.Text.Length -gt 0)){
+        if (($UserTextBox.Text.Length -gt 2)){
             $TerminateGoButton.IsEnabled = $true
         }
         else{
@@ -108,7 +120,7 @@ $UserTextBox.Add_TextChanged({
 
 $ManagerTextBox.Add_TextChanged({
     if($OOOCheckbox.IsChecked){
-        if (($UserTextBox.Text.Length -gt 0)  -and ($ManagerTextBox.Length -gt 0)){
+        if (($UserTextBox.Text.Length -gt 2)  -and ($ManagerTextBox.Text.Length -gt 2)){
             $TerminateGoButton.IsEnabled = $true
         }
         else{
@@ -116,7 +128,7 @@ $ManagerTextBox.Add_TextChanged({
         }
     }
     else{
-        if (($UserTextBox.Text.Length -gt 0)){
+        if (($UserTextBox.Text.Length -gt 2)){
             $TerminateGoButton.IsEnabled = $true
         }
         else{
@@ -129,6 +141,7 @@ $ManagerTextBox.Add_TextChanged({
 #Select User
 $UserButton.Add_Click({
     $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select a User"
+
     $UserTextbox.Text = $Global:termeduser.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
@@ -161,7 +174,7 @@ $TerminateGoButton.Add_Click({
     Try{
         Get-AcceptedDomain -ErrorAction Stop | Out-Null
     }Catch{
-        Connect-ExchangeOnline -ShowBanner:$false
+        Connect-ExchangeOnline -ShowBanner:$False
     }
 
     #Set Out of Office Message
@@ -175,7 +188,7 @@ $TerminateGoButton.Add_Click({
 
     #Remove AD Groups
     $ADGroups = (Get-ADUser $Global:termeduser.SamAccountName -Properties memberof).memberof
-    $ADGroups | ForEach-Object {remove-adgroupmember -identity $_ -member $Global:termeduser.SamAccountName}
+    $ADGroups | ForEach-Object {remove-adgroupmember -identity $_ -member $Global:termeduser.SamAccountName -Confirm:$False}
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all Active Directory groups.`r"
 
     #Set Litigation Hold
@@ -206,6 +219,10 @@ $TerminateGoButton.Add_Click({
             else{
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Cancelled Mailbox Shared User Access Selection`r" -Color "Red"
             }
+            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Access granted to $($Global:Manager.Name) on the $($Global:termeduser.UserPrincipalName) mailbox`r"
+    }
+    else{
+        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Shared Mailbox Permissions Not Selected`r" -Color "Yellow"
     }
 
     #Move to Disabled User OU
