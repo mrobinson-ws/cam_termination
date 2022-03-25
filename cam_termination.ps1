@@ -244,6 +244,7 @@ $TerminateGoButton.Add_Click({
     }
 
     #Remove remaining M365/AzureAD Groups
+    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
     $memberships = Get-AzureADUserMembership -ObjectId $Global:termeduser.UserPrincipalName | Where-Object {$_.ObjectType -ne "Role"}| Select-Object DisplayName,ObjectId
     foreach ($membership in $memberships) { 
             $group = Get-AzureADMSGroup -ID $membership.ObjectId
@@ -266,7 +267,6 @@ $TerminateGoButton.Add_Click({
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all M365/AzureAD groups.`r"
 
     #Remove all 365/Azure licensing
-    $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
     $licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
     if($UserInfo.assignedlicenses){
         $licenses.RemoveLicenses = $UserInfo.assignedlicenses.SkuId
