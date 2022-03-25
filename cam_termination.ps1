@@ -141,13 +141,18 @@ $ManagerTextBox.Add_TextChanged({
 #Select User
 $UserButton.Add_Click({
     $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select a User"
-
+    if($Global:termeduser.UserPrincipalName -like "*@crisisassistance.local"){
+        $null = [System.Windows.MessageBox]::Show('User has incorrect UPN ending in .local instead of .org, please terminate manually, user has been deselected')
+        Remove-Variable termeduser -Scope Global
+    }
+    else{
     $UserTextbox.Text = $Global:termeduser.Name
     $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
 Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
+    }
 })
 
 #Select Manager
