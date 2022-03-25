@@ -276,6 +276,9 @@ $TerminateGoButton.Add_Click({
 
     Remove-Variable termeduser -Scope Global
     Remove-Variable Manager -Scope Global
+    $ManagerTextBox.Text = ""
+    $UserTextbox.Text = ""
+    $TerminateGoButton.IsEnabled = $false
 })
 
 $null = $UserForm.ShowDialog()
