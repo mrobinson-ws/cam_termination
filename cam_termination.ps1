@@ -143,26 +143,53 @@ $UserButton.Add_Click({
     $Global:termeduser = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName,SamAccountName,DistinguishedName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select a User"
     if($Global:termeduser.UserPrincipalName -notlike "*@crisisassistance.org"){
         Remove-Variable termeduser -Scope Global
-        $null = [System.Windows.MessageBox]::Show('User has incorrect UPN not ending in crisisassistance.org, please terminate manually, user has been deselected')
-    }else{
-    $UserTextbox.Text = $Global:termeduser.Name
-    $OOOTextBox.Text = @"
+        $UserTextbox.Text = ""
+        $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
 Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
+        $null = [System.Windows.MessageBox]::Show('User has incorrect UPN not ending in crisisassistance.org, please terminate manually, user has been deselected')
+    }else{
+        $UserTextbox.Text = $Global:termeduser.Name
+        if($Global:Manager.UserPrincipalName -ne $Global:termeduser.UserPrincipalName){
+            $OOOTextBox.Text = @"
+$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
+Thank you.
+"@
+        }else{
+            $ManagerTextBox.Text = ""
+            $OOOTextBox.Text = @"
+$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
+Thank you.
+"@
+            $null = [System.Windows.MessageBox]::Show('Manager cannot match User, please select Manager again')
+        }
     }
 })
 
 #Select Manager
 $ManagerButton.Add_Click({
     $Global:Manager = Get-ADUser -Filter "Enabled -eq 'True'" | Select-Object Name,UserPrincipalName | sort-Object Name | Out-Gridview -OutputMode Single -Title "Please Select the Manager"
-    $ManagerTextBox.Text = $Global:Manager.Name
-    $OOOTextBox.Text = @"
+    if($Global:Manager.UserPrincipalName -ne  $Global:termeduser.UserPrincipalName){
+        $ManagerTextBox.Text = $Global:Manager.Name
+        $OOOTextBox.Text = @"
 $($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
 Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
 Thank you.
 "@
+    }else{
+        Remove-Variable Manager -Scope Global
+        $ManagerTextBox.Text = ""
+        $OOOTextBox.Text = @"
+$($Global:termeduser.Name) is no longer with Crisis Assistance Ministry, and this email is not monitored.
+Please contact $($Global:Manager.UserPrincipalName) and your emails will be delivered to the appropriate department.
+Thank you.
+"@
+$null = [System.Windows.MessageBox]::Show('Manager cannot match User, please select Manager again')
+    }
 })
 
 #Terminate the user with selected options
@@ -223,7 +250,6 @@ $TerminateGoButton.Add_Click({
             else{
                 Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Cancelled Mailbox Shared User Access Selection`r" -Color "Red"
             }
-            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Access granted to $($Global:Manager.Name) on the $($Global:termeduser.UserPrincipalName) mailbox`r"
     }
     else{
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Shared Mailbox Permissions Not Selected`r" -Color "Yellow"
