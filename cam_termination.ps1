@@ -222,10 +222,50 @@ $TerminateGoButton.Add_Click({
     $ADGroups | ForEach-Object {remove-adgroupmember -identity $_ -member $Global:termeduser.SamAccountName -Confirm:$False}
     Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Removed user from all Active Directory groups.`r"
 
+    #Test and Connect to Azure AD if needed
+    Try{
+        Get-AzureADDomain -ErrorAction Stop | Out-Null
+    }Catch{
+        Connect-AzureAD
+    }
+    
     #Set Litigation Hold
     if($LitigationHoldCheckBox.IsChecked){
-        Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
-        Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation hold set.`r"
+        Clear-Variable AssignedLicense -ErrorAction SilentlyContinue
+        Clear-Variable E1Assigned -ErrorAction SilentlyContinue
+        Clear-Variable E3Assigned -ErrorAction SilentlyContinue
+        $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
+        foreach($AssignedLicense in $UserInfo.AssignedLicenses){
+            if($AssignedLicense.SkuID -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"){
+                $E3Assigned = $True
+            }
+        }
+        if($E3Assigned -eq $True){
+            Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
+            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) already has an Office 365 E3 License (to be removed shortly).  Litigation Hold has been applied.`r"
+        }
+        else{
+            Clear-Variable AvailableLicenseCheck -ErrorAction SilentlyContinue
+            Clear-Variable E3License -ErrorAction SilentlyContinue
+            $E3License =  Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuId -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"}
+            while($AvailableLicenseCheck -ne $true){
+                if($E3License.Enabled-$E3License.ConsumedUnits -ge 1){
+                    $TempLicense = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
+                    $TempLicense.SkuID = $E3License.SkuID
+                    $Licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
+                    $Licenses.AddLicenses = $TempLicense
+                    Set-AzureADUserLicense -ObjectID $Global:termeduser.UserPrincipalName -AssignedLicenses $Licenses
+                    Clear-Variable TempLicense -ErrorAction SilentlyContinue
+                    Clear-Variable Licenses -ErrorAction SilentlyContinue                    
+                }
+                else{
+                    $null = [System.Windows.MessageBox]::Show("You do not have any E3 licenses to assign, please acquire licenses and try again","License Check","OKCancel","Warning")
+                }
+            }
+            Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
+            Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) did not have an E3, one has been added temporarily to set Litigation Hold.  Litigation Hold has been applied.`r"
+        }
+        
     }
     else{
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation Hold not selected`r" -Color "Yellow"
@@ -241,7 +281,7 @@ $TerminateGoButton.Add_Click({
     }
 
     if($GrantSharedCheckbox.IsChecked){
-        $SharedMailboxUser = Get-AzureADUser -Filter * | Where-Object {$_.AccountEnabled } | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
+        $SharedMailboxUser = Get-AzureADUser -All $true | Where-Object {$_.AccountEnabled } | Sort-Object DisplayName | Select-Object -Property DisplayName,UserPrincipalName | Out-GridView -Title "Please select the user(s) to share the $username Shared Mailbox with" -OutputMode Single | Select-Object -ExpandProperty UserPrincipalName
             if($SharedMailboxUser){
                 Add-MailboxPermission -Identity $Global:termeduser.UserPrincipalName -User $SharedMailboxUser -AccessRights FullAccess -InheritanceType All
                 Add-RecipientPermission -Identity $Global:termeduser.UserPrincipalName -Trustee $SharedMailboxUser -AccessRights SendAs -Confirm:$False
@@ -261,13 +301,6 @@ $TerminateGoButton.Add_Click({
 
     #Sync to AzureAD/365
     Start-ADSyncSyncCycle -PolicyType Delta
-
-    #Test and Connect to Azure AD if needed
-    Try{
-        Get-AzureADDomain -ErrorAction Stop | Out-Null
-    }Catch{
-        Connect-AzureAD
-    }
 
     #Remove remaining M365/AzureAD Groups
     $UserInfo = Get-AzureADUser -ObjectId $Global:termeduser.UserPrincipalName
