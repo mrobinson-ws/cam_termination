@@ -250,22 +250,34 @@ $TerminateGoButton.Add_Click({
             $E3License =  Get-AzureADSubscribedSku | Select-Object -Property Sku*,ConsumedUnits -ExpandProperty PrepaidUnits | Where-Object {$_.SkuId -eq "6fd2c87f-b296-42f0-b197-1e91e994b900"}
             while($AvailableLicenseCheck -ne $true){
                 if($E3License.Enabled-$E3License.ConsumedUnits -ge 1){
-                    $TempLicense = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
-                    $TempLicense.SkuID = $E3License.SkuID
+                    $AvailableLicenseCheck = $true
+                    $TempLicenseAdd = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicense
+                    $TempLicenseAdd.SkuID = $E3License.SkuID
                     $Licenses = New-Object -TypeName Microsoft.Open.AzureAD.Model.AssignedLicenses
-                    $Licenses.AddLicenses = $TempLicense
+                    $Licenses.RemoveLicenses = "18181a46-0d4e-45cd-891e-60aabd171b4e"
+                    $Licenses.AddLicenses = $TempLicenseAdd
                     Set-AzureADUserLicense -ObjectID $Global:termeduser.UserPrincipalName -AssignedLicenses $Licenses
                     Clear-Variable TempLicense -ErrorAction SilentlyContinue
-                    Clear-Variable Licenses -ErrorAction SilentlyContinue                    
+                    Clear-Variable Licenses -ErrorAction SilentlyContinue                   
                 }
                 else{
                     $null = [System.Windows.MessageBox]::Show("You do not have any E3 licenses to assign, please acquire licenses and try again","License Check","OKCancel","Warning")
                 }
             }
-            Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true
+            Clear-Variable LitHoldCheck -ErrorAction SilentlyContinue
+            while ($LitHoldCheck -ne $true) {
+                try {
+                    Set-Mailbox $Global:termeduser.UserPrincipalName -LitigationHoldEnabled $true -ErrorAction Stop
+                    $LitHoldCheck = $true
+                }
+                catch {
+                    $null = [System.Windows.MessageBox]::Show("Litigation Hold Failed, Waiting 60 Seconds and Trying Again")
+                    $LitHoldCheck = $false
+                    Start-Sleep -Seconds 60
+                }
+            }
             Write-RichtextBox -TextBox $TerminationRichTextBox -Text "$($Global:termeduser) did not have an E3, one has been added temporarily to set Litigation Hold.  Litigation Hold has been applied.`r"
         }
-        
     }
     else{
         Write-RichtextBox -TextBox $TerminationRichTextBox -Text "Litigation Hold not selected`r" -Color "Yellow"
