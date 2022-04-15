@@ -353,3 +353,4 @@ $TerminateGoButton.Add_Click({
 })
 
 $null = $UserForm.ShowDialog()
+#####Bug Tested, Coder Approved, 4/15/22
